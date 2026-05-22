@@ -19,10 +19,6 @@ This repository is an operational Proof of Concept. To scale this logic for ente
 2. **Telemetry Timing:** Calibrate the Daemon sensor to trigger on semantic shifts or natural conversational pauses rather than rigid per-turn loops.
 3. **Cloud Infrastructure:** Migrate the localized storage files to a scalable cloud vector database (e.g., Pinecone, pgvector, or Qdrant).
 
-
-
-
-
 ---
 
 ## Quick Start
