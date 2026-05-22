@@ -1,0 +1,38 @@
+import uuid
+from typing import List, Dict, Any
+from warehouse import LocalWarehouse
+
+class HandoverDaemon:
+    def __init__(self, warehouse: LocalWarehouse):
+        self.warehouse = warehouse
+        self.turn_counter = 0
+        self.ding_threshold = 1  # Handover triggers every single turn to enforce the boundary
+
+    def process_turn(self, conversation_history: List[Dict[str, str]]) -> bool:
+        """Tracks the active session and triggers the handover protocol when needed."""
+        self.turn_counter += 1
+        if self.turn_counter >= self.ding_threshold:
+            self._execute_handover(conversation_history)
+            self.turn_counter = 0
+            return True
+        return False
+
+    def _execute_handover(self, conversation_history: List[Dict[str, str]]):
+        """Compiles the internal handover telemetry note and commits it to storage."""
+        recent_turns = conversation_history[-2:]  # Capture the current interaction turn
+        
+        handover_doc = {
+            "session_state": "ACTIVE",
+            "extracted_patterns": [],
+            "raw_text_snapshot": recent_turns
+        }
+        
+        anchors = set()
+        for turn in recent_turns:
+            text = turn.get("content", "").lower()
+            if "blueprint" in text or "code" in text:
+                anchors.add("system_architecture")
+            if "physics" in text or "energy" in text:
+                anchors.add("middle_ground")
+                
+        self.warehouse.store_bundle(f"bundle_{str(uuid.uuid4())[:8]}", handover_doc, list(anchors))
