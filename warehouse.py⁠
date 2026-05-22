@@ -1,0 +1,69 @@
+import sqlite3
+import json
+import time
+from typing import List, Dict, Any
+
+class LocalWarehouse:
+    def __init__(self, user_id: str):
+        self.db_path = f"warehouse_{user_id}.db"
+        self._initialize_vault()
+
+    def _initialize_vault(self):
+        """Creates the isolated storage tables if they do not exist."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS data_bundles (
+                    bundle_id TEXT PRIMARY KEY,
+                    timestamp REAL,
+                    raw_telemetry TEXT,
+                    reference_anchors TEXT
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS system_indices (
+                    anchor_key TEXT PRIMARY KEY,
+                    bundle_ids TEXT
+                )
+            """)
+            conn.commit()
+
+    def store_bundle(self, bundle_id: str, raw_data: Dict[str, Any], anchors: List[str]):
+        """Saves a pristine, immutable data bundle down to the vault."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO data_bundles VALUES (?, ?, ?, ?)",
+                (bundle_id, time.time(), json.dumps(raw_data), json.dumps(anchors))
+            )
+            
+            # Index the anchors for fast, low-overhead querying later
+            for anchor in anchors:
+                cursor.execute("SELECT bundle_ids FROM system_indices WHERE anchor_key = ?", (anchor,))
+                row = cursor.fetchone()
+                if row:
+                    ids = json.loads(row[0])
+                    if bundle_id not in ids:
+                        ids.append(bundle_id)
+                    cursor.execute("UPDATE system_indices SET bundle_ids = ? WHERE anchor_key = ?", (json.dumps(ids), anchor))
+                else:
+                    cursor.execute("INSERT INTO system_indices VALUES (?, ?)", (anchor, json.dumps([bundle_id])))
+            conn.commit()
+
+    def query_warehouse(self, search_anchor: str) -> List[Dict[str, Any]]:
+        """Executes a targeted internal query against the local vault."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT bundle_ids FROM system_indices WHERE anchor_key = ?", (search_anchor,))
+            row = cursor.fetchone()
+            if not row:
+                return []
+            
+            bundle_ids = json.loads(row[0])
+            results = []
+            for b_id in bundle_ids:
+                cursor.execute("SELECT raw_telemetry FROM data_bundles WHERE bundle_id = ?", (b_id,))
+                b_row = cursor.fetchone()
+                if b_row:
+                    results.append(json.loads(b_row[0]))
+            return results
