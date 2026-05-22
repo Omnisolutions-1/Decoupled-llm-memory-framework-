@@ -1,0 +1,34 @@
+from typing import List, Dict, Any
+from warehouse import LocalWarehouse
+from daemon import HandoverDaemon
+
+class FrontRoomController:
+    def __init__(self, user_id: str):
+        self.warehouse = LocalWarehouse(user_id)
+        self.daemon = HandoverDaemon(self.warehouse)
+        self.active_table: List[Dict[str, str]] = []
+
+    def handle_user_input(self, input_text: str) -> str:
+        # Step 1: Core anchor pattern tracking
+        triggered_anchors = []
+        if "architecture" in input_text or "code" in input_text:
+            triggered_anchors.append("system_architecture")
+        if "physics" in input_text:
+            triggered_anchors.append("middle_ground")
+
+        context_addition = ""
+        for anchor in triggered_anchors:
+            historical_bundles = self.warehouse.query_warehouse(anchor)
+            if historical_bundles:
+                context_addition += f"\n[Vault Context Loaded for {anchor}]"
+
+        # Step 2: Append real-time transmission data
+        self.active_table.append({"role": "user", "content": input_text})
+        simulated_response = "Front Room processing stable. Context table maintained within 5% footprint."
+        self.active_table.append({"role": "assistant", "content": simulated_response})
+
+        # Step 3: Defer execution timing completely to the daemon post-append
+        if self.daemon.process_turn(self.active_table):
+            self.active_table = self.active_table[-2:]
+            
+        return simulated_response
