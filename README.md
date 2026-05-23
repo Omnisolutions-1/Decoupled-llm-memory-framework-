@@ -1,21 +1,20 @@
- Decoupled Event-Driven Memory Framework (Proof of Concept)
+Decoupled Event-Driven Memory Framework (Proof of Concept)
 A lightweight architectural blueprint designed to force a flat LLM context footprint and eliminate token accumulation bloat.
 Architecture Overview
 This system is an event-driven, decoupled memory framework designed to maintain an immutable, flat LLM context window footprint indefinitely. It is cleanly separated into three components:
-1 LocalWarehouse (front_room.py)
+1 LocalWarehouse (⁠warehouse.py⁠)
  Immutable SQLite-based storage for conversation bundles.
  Anchor-based indexing for fast, low-overhead querying.
-2 HandoverDaemon (daemon.py)
+2 HandoverDaemon (⁠daemon.py⁠)
  Controls the execution timing of context handovers.
  Enforces the strict context boundary by archiving older turns automatically.
-3 FrontRoomController (front_room.py)
+3 FrontRoomController (⁠front_room.py⁠)
  Manages the tiny active conversation table (the runtime workspace).
  Keeps the active footprint light and responsive.
-Data Flow:
-[Front Room (Active Workspace)] to [Handover Daemon (Sync Logic)] to [Local Warehouse (SQLite3)]
+[Front Room(active workspace)]—> [Handover Daemon (Sync Logic)]—> [Local Warehouse (SQLite3)]
 Key Results (Stress Tested)
- Active context stays flat at 2-4 messages permanently, regardless of turn count.
- Compute footprint remains consistently low (~2-5% load).
+ Active context stays flat at 2–4 messages permanently, regardless of turn count.
+ Compute footprint remains consistently low (~2–5% load).
  Successfully eliminates context window saturation, token bloat, and system memory degradation.
 Scaling Blueprint (v2.0 Vector Upgrade)
 To scale this operational Proof of Concept for enterprise-grade mass production with millions of concurrent users:
