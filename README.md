@@ -10,9 +10,13 @@ This production blueprint maintains an immutable, flat LLM context window indefi
 
 ```mermaid
 graph TD
-A[FrontRoomController\nfront\_room.py\nActive Runtime Workspace] -->|Event Trigger| B[HandoverDaemon\ndaemon.py\nSync & Timing Control]
+
+A[FrontRoomController\nfront_room.py\nActive Runtime Workspace] -->|Event Trigger| B[HandoverDaemon\ndaemon.py\nSync & Timing Control]
 B -->|Commits Archive| C[LocalWarehouse\nwarehouse.py\nSQLite3 Immutable Storage]
 C -->|Async State Updates| A
+```
+
+
 1. FrontRoomController (front_room.py)
 * Role: Manages the active runtimeworkspace.
 * Mechanism: Maintains a highly restricted,lightweight conversation table. Itguarantees that the live model promptnever chokes on historical data turn-count.
