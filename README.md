@@ -10,12 +10,10 @@ This production blueprint maintains an immutable, flat LLM context window indefi
 
 ```mermaid
 graph TD
-
-A[FrontRoomController\nfront_room.py\nActive Runtime Workspace] -->|Event Trigger| B[HandoverDaemon\ndaemon.py\nSync & Timing Control]
-B -->|Commits Archive| C[LocalWarehouse\nwarehouse.py\nSQLite3 Immutable Storage]
-C -->|Async State Updates| A
+    A["FrontRoomController<br/>front_room.py<br/>Active Runtime Workspace"] -->|Event Trigger| B["HandoverDaemon<br/>daemon.py<br/>Sync & Timing Control"]
+    B -->|Commits Archive| C["LocalWarehouse<br/>warehouse.py<br/>SQLite3 Immutable Storage"]
+    C -->|Async State Updates| A
 ```
-
 
 1. FrontRoomController (front_room.py)
 * Role: Manages the active runtimeworkspace.
@@ -31,7 +29,7 @@ C -->|Async State Updates| A
 Requirements:
 * Python 3.8+
 * SQLite3 (included in Python standardlibrary — no install needed)
-Run the framework:
+Run the framework`
 bash
 
 
@@ -42,7 +40,7 @@ git clone https://github.com/Omnisolutions-1/Decoupled-llm-memory-framework-.git
 cd Decoupled-llm-memory-framework-
 
 # Run the front room controller
-python front\_room.py
+python front_room.py
 No external dependencies required for v1.0. Everything runs on Python stdlib.
 
 📊 Performance Metrics & Key Results
@@ -52,15 +50,15 @@ During standard stress testing, the architecture demonstrated the following oper
 * Zero Saturation: Successfully eliminateslong-thread token bloat, promptdegradation, and system latency spikes.
 
 🗺️ Roadmap
-*  v1.0 — SQLite3 prototype with event-driven sync and anchor-based indexing
-*  v1.0 — Keyword harmonization fix:unified anchor vocabulary across all threecomponents
-*  v2.0 — Semantic Ingestion Gateway:vector embeddings replace keyword filters
-*  v2.0 — Connection Shield: fault-tolerantcircuit breaker with state persistence
-*  v2.0 — FrontRoomController rewrite:cosine similarity drift detection, O(1)context guarantee
-*  v2.0 — Modular warehouse adapters:Qdrant, Pinecone, SQLite
-*  v2.0 — Multi-provider LLM abstraction:Claude, GPT, Gemini
-*  v2.3 — Semantic drift detection withembedding similarity gating
-*  v3.0 — Decentralized multi-tenantsession state vaulting
+* ✅ v1.0 — SQLite3 prototype with event-driven sync and anchor-based indexing
+* ✅ v1.0 — Keyword harmonization fix:unified anchor vocabulary across all threecomponents
+* ⬜ v2.0 — Semantic Ingestion Gateway:vector embeddings replace keyword filters
+* ⬜ v2.0 — Connection Shield: fault-tolerant circuit breaker with statepersistence
+* ⬜ v2.0 — FrontRoomController rewrite:cosine similarity drift detection, O(1)context guarantee
+* ⬜ v2.0 — Modular warehouse adapters:Qdrant, Pinecone, SQLite
+* ⬜ v2.0 — Multi-provider LLM abstraction:Claude, GPT, Gemini
+* ⬜ v2.3 — Semantic drift detection withembedding similarity gating
+* ⬜ v3.0 — Decentralized multi-tenantsession state vaulting
 
 🛠️ How It Was Built: AI Orchestration Workflow
 This framework is a direct product of high-velocity AI collaboration. The architectural bottleneck was identified and designed by a non-coder acting as an Architectural Orchestrator, guiding and synchronizing parallel instances of Google Gemini and Anthropic Claude.
