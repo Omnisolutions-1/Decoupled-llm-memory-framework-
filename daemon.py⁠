@@ -30,7 +30,7 @@ class HandoverDaemon:
         anchors = set()
         for turn in recent_turns:
             text = turn.get("content", "").lower()
-            if "blueprint" in text or "code" in text:
+            if "architecture" in text or "code" in text:
                 anchors.add("system_architecture")
             if "physics" in text or "energy" in text:
                 anchors.add("middle_ground")
