@@ -53,6 +53,22 @@ python3 -m unittest discover -v
 python3 semantic_ingestion_gateway.py
 python3 src/layers/front_room_controller.py
 ```
+## Local Mac Launch (`llama-cpp-python` + `Qwen2.5-1.5B-Instruct-GGUF`)
+
+In **Terminal 1** (start your local `llama-cpp-python` server with a 4,096-token context window):
+
+```bash
+source ~/.local_ai_env/bin/activate && python3 -m llama_cpp.server --model /path/to/Qwen2.5-1.5B-Instruct-GGUF.gguf --n_ctx 4096 --port 8000
+```
+
+In **Terminal 2** (run `local_chat.py` wired to the v2.1 `FrontRoomController`):
+
+```bash
+source ~/.local_ai_env/bin/activate && python3 local_chat.py
+```
+
+Inside `local_chat.py`, use `/compact`, `/telemetry`, or `/quit`.
+
 
 ## Status
 
