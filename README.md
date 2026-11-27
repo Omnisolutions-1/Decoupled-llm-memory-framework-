@@ -1,130 +1,61 @@
-# Decoupled LLM Memory Framework v2.0
-### O(1) Context Management & Drift-Aware Local Warehousing
+# Decoupled LLM Memory Framework v2.1
+### O(1) Context Management, Semantic Ingestion Gateway & Adaptive Hybrid Retrieval
 
-An event-driven, decoupled memory framework designed to enforce a permanently
-flat LLM context window footprint and eliminate token accumulation bloat in
-production agentic pipelines.
+An event-driven, decoupled memory framework designed to enforce a permanently flat LLM context window footprint, eliminate token accumulation bloat, and preserve rare technical details across long-running agentic sessions.
 
----
+## What's New in v2.1
 
-## The Problem
+- **O(1) Token-Budgeted Front Room (`FrontRoomController` + `TokenBudgetedFrontRoom`)**: Enforces both a fixed active turn window and a hard token ceiling (`max_context_tokens = 1764` by default) using BPE-aligned tokenization (`tiktoken` when installed, subword-aware fallback otherwise), packing in strict priority order: `user_query` -> `active_turns` -> `retrieved_memories`.
+- **Preserved Semantic Drift Gate**: Evaluates cosine similarity between incoming queries and the active window (`< 0.65` triggers warehouse and hybrid memory lookup; on-topic turns short-circuit without external retrieval).
+- **Semantic Ingestion Gateway (`SemanticIngestionGateway`)**:
+  - **Surface Fluff Stripping**: Removes conversational filler and greetings while preserving core assertions, entities, and rare terms.
+  - **Consistency-Weight Folding**: Folds repeated consistent claims into a single weighted `RuleNode` rather than appending duplicates.
+  - **Open Puzzle Tables**: Routes contradictions and unplaced signals to `PuzzleTable` partitions as `PuzzlePiece` records with non-destructive cross-table copy-linking and `resolve_puzzle_piece()` as the caller/LLM-judge hook for `distortion_confidence`.
+- **Distortion-Only Hierarchical Compaction (`HierarchicalCompactor`)**:
+  - **Zero Blind TTL**: Valid `RuleNode` and `ConsolidatedElephant` records are never evicted for sitting idle.
+  - **Audit Archive & `CondemnedPattern` Stubs**: Proven-distorted rules (`is_distorted=True` and `distortion_confidence >= threshold`) are archived to `audit_archive` and replaced with frozen-weight `CondemnedPattern` ("wanted poster") stubs so matching-shape arrivals are flagged on `ingest()`.
+  - **Upward Consolidation**: Merges semantically related `RuleNode` clusters (`sim >= cluster_similarity_threshold` with `shared_ent`, or `>= 2` shared non-numeric entities) into denser `ConsolidatedElephant` macro-nodes.
+- **Adaptive Rare-Detail Hybrid Search (`AdaptiveHybridRetriever`)**:
+  - Dynamically switches fusion weights (`0.65` BM25 / `0.35` Dense when high-IDF rare anchors are present; `0.35` / `0.65` otherwise) with a bounded `0.15` log-cap on `consistency_weight` (`min(0.15, 0.03 * log1p(weight))`).
+- **Latency Observability (`LatencyTracker`)**: Tracks per-turn `p50_ms`, `p95_ms`, `mean_ms`, and `drift_skip_rate`.
 
-Every major LLM deployment shares the same structural vulnerability: context
-windows grow with conversation length. The results are universal — token bloat,
-prompt degradation, memory saturation, and unsustainable compute overhead at
-scale.
+## Repository Structure
 
-This is the weightlifter bottleneck. The longer the session, the heavier the
-load. Performance degrades before the work is done.
+```text
+Decoupled-llm-memory-framework-/
+├── src/
+│   ├── __init__.py
+│   └── layers/
+│       ├── __init__.py
+│       └── front_room_controller.py
+├── semantic_ingestion_gateway.py
+├── warehouse.py
+├── requirements.txt
+├── test_semantic_ingestion_gateway.py
+├── test_front_room_integration.py
+├── daemon.py
+├── front_room.py
+└── README.md
+```
 
----
+## Quickstart
 
-## The Solution
+Works out of the box with Python 3.9+ and `numpy` (heavy ML dependencies like `sentence-transformers`, `scikit-learn`, `tiktoken`, and `qdrant-client` are optional and degrade gracefully).
 
-This framework decouples active runtime conversation from long-term memory
-retrieval entirely. Context stays flat. Permanently. Regardless of turn count.
+```bash
+# 1. Install core (or full optional) dependencies
+pip install -r requirements.txt
 
-Active context window: **2–4 messages. Always.**
+# 2. Run the full test suite
+python3 -m unittest discover -v
 
----
-
-## System Architecture
-[ FrontRoomController ] ---> | (Flush / Truncate) | v [ Flat O(1) Context Window ] (2–4 Turns Permanently)
-
-
-
-
-( Drift Gate Sensor: Cosine Similarity ) | (Semantic Boundary Breach) | v [ Local Warehouse Adapters ] (SQLite3 / Qdrant Vector DB)
-
-
-
-
-This framework isolates active runtime workspace conversation from long-term
-memory retrieval, guaranteeing an immutable, flat context footprint regardless
-of total conversation turn-count.
-
----
-
-## Core Components
-
-**1. Semantic Ingestion Gateway** (`src/layers/semantic_gateway.py`)
-Pre-processes and compresses real-time token traffic before injection into the
-active context layer.
-
-**2. Connection Shield** (`src/layers/connection_shield.py`)
-Fault-tolerant circuit breaker with state persistence, preventing context loss
-during API drops or network latency spikes.
-
-**3. Front Room Controller** (`src/layers/front_room_controller.py`)
-Enforces the hard O(1) context limit. Tracks human cognitive shifts via a
-localized vector-housed Drift Gate sensor (all-MiniLM-L6-v2) measuring
-semantic distance.
-
-**4. Universal Warehouse Abstraction** (`src/warehouse/`)
-Modular storage plane allowing seamless hot-swapping between `sqlite_adapter.py`
-for localized testing and `qdrant_adapter.py` for scalable vector enterprise
-infrastructure.
-
----
-
-## Performance Metrics
-
-| Metric | Result |
-|---|---|
-| Active Context Footprint | 2–4 messages permanently |
-| Token Overhead Reduction | ~95% drop in continuous tracking overhead |
-| Baseline Compute Load | ~2–5% localized routing overhead |
-| Context Saturation | Zero. Eliminated. |
-
----
-
-## What This Eliminates
-
-- Long-thread token bloat
-- Prompt degradation over session length
-- System latency spikes from context saturation
-- Session state loss on API interruption
-
----
-
-## Orchestration & Methodology
-
-This framework is a direct product of high-velocity multi-model orchestration.
-The architectural mechanics and systemic guardrails were mapped by a human
-Architectural Orchestrator, guiding parallel Claude and Gemini instances to
-isolate context management from the underlying inference engines.
-
-Built from inside the problem — the Orchestrator's own cognitive architecture
-required a solution to memory constraint and context boundary management first.
-That origin is not incidental. It is the source of the solution's validity.
-
-**Architectural Orchestrator:** Jax (Jaclyn)
-
-**Entity:** Omni-Solution Lab (OSL)
-
----
+# 3. Run the standalone smoke tests
+python3 semantic_ingestion_gateway.py
+python3 src/layers/front_room_controller.py
+```
 
 ## Status
 
-- [x] v1.0 — Functional prototype. Keyword-filter ingestion. Proof of concept.
-- [x] v2.0 — Production-ready. Semantic Ingestion Gateway. Cosine similarity
-drift detection. Modular warehouse adapters. Strict O(1) context
-management locked.
-- [ ] v2.3 — In progress.
-
----
-
-## Enterprise & Integration
-
-Open to technical operations and enterprise architecture integration modules
-under strict NDA.
-
-**Code is live. Open source. Stress tested.**
-
-> *Subconsciously, people build for what they know.*
-> *If something new is wanted — a different type of mind will be needed.*
-
----
-
-*Built by an orchestrator managing parallel Claude + Gemini instances.*
-*Pattern recognition + AI implementation.*
+- [x] v1.0 — Functional prototype. Keyword-filter ingestion.
+- [x] v2.0 — Semantic drift detection, modular warehouse adapters, strict O(1) context window.
+- [x] v2.1 — Semantic Ingestion Gateway, PuzzleTables, `CondemnedPattern` audit stubs, distortion-only Hierarchical Compactor, Adaptive Hybrid Search, and hard 1,764-token Front Room ceiling.
